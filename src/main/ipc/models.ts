@@ -14,15 +14,13 @@ const store = new Store({
 // Provider configurations
 const PROVIDERS: Omit<Provider, 'hasApiKey'>[] = [
   { id: 'anthropic', name: 'Anthropic' },
-  { id: 'openai', name: 'OpenAI' },
-  { id: 'google', name: 'Google' }
+  { id: 'openai', name: 'OpenAI' }
 ]
 
 // Environment variable mapping
 const ENV_VAR_MAP: Record<ProviderId, string> = {
   anthropic: 'ANTHROPIC_API_KEY',
   openai: 'OPENAI_API_KEY',
-  google: 'GOOGLE_API_KEY',
   ollama: '' // Ollama doesn't need API key
 }
 
@@ -34,7 +32,7 @@ const AVAILABLE_MODELS: ModelConfig[] = [
     name: 'Claude Opus 4.5',
     provider: 'anthropic',
     model: 'claude-opus-4-5-20251101',
-    description: 'Most capable, excels at complex reasoning and coding',
+    description: 'Premium model with maximum intelligence',
     available: true
   },
   {
@@ -42,7 +40,7 @@ const AVAILABLE_MODELS: ModelConfig[] = [
     name: 'Claude Sonnet 4.5',
     provider: 'anthropic',
     model: 'claude-sonnet-4-5-20250929',
-    description: 'Balanced performance and efficiency, great for agents',
+    description: 'Best balance of intelligence, speed, and cost for agents',
     available: true
   },
   {
@@ -50,7 +48,24 @@ const AVAILABLE_MODELS: ModelConfig[] = [
     name: 'Claude Haiku 4.5',
     provider: 'anthropic',
     model: 'claude-haiku-4-5-20251001',
-    description: 'Fast and cost-effective for real-time tasks',
+    description: 'Fastest model with near-frontier intelligence',
+    available: true
+  },
+  // Anthropic Claude legacy models
+  {
+    id: 'claude-opus-4-1-20250805',
+    name: 'Claude Opus 4.1',
+    provider: 'anthropic',
+    model: 'claude-opus-4-1-20250805',
+    description: 'Previous generation premium model with extended thinking',
+    available: true
+  },
+  {
+    id: 'claude-sonnet-4-20250514',
+    name: 'Claude Sonnet 4',
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    description: 'Fast and capable previous generation model',
     available: true
   },
   // OpenAI GPT-5 series (latest as of Jan 2026)
@@ -142,15 +157,6 @@ const AVAILABLE_MODELS: ModelConfig[] = [
     provider: 'openai',
     model: 'gpt-4o-mini',
     description: 'Cost-efficient variant with faster response times',
-    available: true
-  },
-  // Google Gemini 3 series (latest as of Jan 2026)
-  {
-    id: 'gemini-3-flash-preview',
-    name: 'Gemini 3 Flash',
-    provider: 'google',
-    model: 'gemini-3-flash-preview',
-    description: 'Fast, 3x faster than 2.5 Pro with 1M context',
     available: true
   }
 ]

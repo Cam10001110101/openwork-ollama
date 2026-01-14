@@ -78,9 +78,6 @@ function getModelInstance(modelId?: string): ChatAnthropic | ChatOpenAI | string
       model,
       openAIApiKey: apiKey
     })
-  } else if (model.startsWith('gemini')) {
-    // For Gemini, we'd need @langchain/google-genai
-    throw new Error('Gemini support coming soon')
   }
 
   // Default to model string (let deepagents handle it)
