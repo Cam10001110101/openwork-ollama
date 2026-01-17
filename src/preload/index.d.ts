@@ -46,6 +46,10 @@ interface CustomAPI {
     setDefault: (modelId: string) => Promise<void>
     setApiKey: (provider: string, apiKey: string) => Promise<void>
     getApiKey: (provider: string) => Promise<string | null>
+    testOllamaLocal: (endpoint?: string) => Promise<boolean>
+    getOllamaLocalEndpoint: () => Promise<string>
+    setOllamaLocalEndpoint: (endpoint: string) => Promise<void>
+    refreshOllamaLocal: () => Promise<number>
   }
   workspace: {
     get: (threadId?: string) => Promise<string | null>

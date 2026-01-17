@@ -4,7 +4,6 @@ import { TabbedPanel, TabBar } from '@/components/tabs'
 import { RightPanel } from '@/components/panels/RightPanel'
 import { ResizeHandle } from '@/components/ui/resizable'
 import { useAppStore } from '@/lib/store'
-import { ThreadProvider } from '@/lib/thread-context'
 
 // Badge requires ~235 screen pixels to display with comfortable margin
 const BADGE_MIN_SCREEN_WIDTH = 235
@@ -119,7 +118,6 @@ function App(): React.JSX.Element {
   }
 
   return (
-    <ThreadProvider>
     <div className="flex h-screen overflow-hidden bg-background">
       {/* Fixed app badge - zoom independent position and size */}
       <div
@@ -182,7 +180,6 @@ function App(): React.JSX.Element {
         <RightPanel />
       </div>
     </div>
-    </ThreadProvider>
   )
 }
 

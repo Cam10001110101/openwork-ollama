@@ -1,23 +1,13 @@
 import { Bot, X, FileCode, FileText, FileJson, File } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useAppStore } from '@/lib/store'
-import { useThreadState, type OpenFile } from '@/lib/thread-context'
+import { useAppStore, type OpenFile } from '@/lib/store'
 
 interface TabBarProps {
   className?: string
-  threadId?: string
 }
 
-export function TabBar({ className, threadId: propThreadId }: TabBarProps) {
-  const { currentThreadId } = useAppStore()
-  const threadId = propThreadId ?? currentThreadId
-  const threadState = useThreadState(threadId)
-
-  if (!threadState) {
-    return null
-  }
-
-  const { openFiles, activeTab, setActiveTab, closeFile } = threadState
+export function TabBar({ className }: TabBarProps) {
+  const { openFiles, activeTab, setActiveTab, closeFile } = useAppStore()
 
   return (
     <div className={cn(

@@ -1,5 +1,5 @@
 import initSqlJs, { Database as SqlJsDatabase } from 'sql.js'
-import { readFileSync, writeFileSync, existsSync, mkdirSync, statSync, renameSync, unlinkSync } from 'fs'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { dirname } from 'path'
 import type { RunnableConfig } from '@langchain/core/runnables'
 import {
@@ -56,34 +56,8 @@ export class SqlJsSaver extends BaseCheckpointSaver {
 
     // Load existing database if it exists
     if (existsSync(this.dbPath)) {
-      // Check file size - sql.js works entirely in memory, so large files will fail
-      const stats = statSync(this.dbPath)
-      const MAX_DB_SIZE = 100 * 1024 * 1024 // 100MB limit
-
-      if (stats.size > MAX_DB_SIZE) {
-        console.warn(
-          `[SqlJsSaver] Database file is too large (${Math.round(stats.size / 1024 / 1024)}MB). ` +
-            `Creating fresh database to prevent memory issues.`
-        )
-        // Rename the old file for backup
-        const backupPath = this.dbPath + '.bak.' + Date.now()
-        try {
-          renameSync(this.dbPath, backupPath)
-          console.log(`[SqlJsSaver] Old database backed up to: ${backupPath}`)
-        } catch (e) {
-          console.warn('[SqlJsSaver] Could not backup old database:', e)
-          // Try to delete instead
-          try {
-            unlinkSync(this.dbPath)
-          } catch (e2) {
-            console.error('[SqlJsSaver] Could not delete old database:', e2)
-          }
-        }
-        this.db = new SQL.Database()
-      } else {
-        const buffer = readFileSync(this.dbPath)
-        this.db = new SQL.Database(buffer)
-      }
+      const buffer = readFileSync(this.dbPath)
+      this.db = new SQL.Database(buffer)
     } else {
       // Ensure directory exists
       const dir = dirname(this.dbPath)
@@ -173,6 +147,12 @@ export class SqlJsSaver extends BaseCheckpointSaver {
     if (!this.db) throw new Error('Database not initialized')
 
     const { thread_id, checkpoint_ns = '', checkpoint_id } = config.configurable ?? {}
+
+    // Validate thread_id exists
+    if (!thread_id) {
+      console.warn('[SqlJsSaver] getTuple called without thread_id')
+      return undefined
+    }
 
     let sql: string
     let params: (string | undefined)[]
@@ -413,6 +393,12 @@ export class SqlJsSaver extends BaseCheckpointSaver {
 
     if (!config.configurable?.checkpoint_id) {
       throw new Error('Missing checkpoint_id field in config.configurable.')
+    }
+
+    // Validate writes parameter - can be undefined during initial checkpoint creation
+    if (!Array.isArray(writes)) {
+      console.warn('[SqlJsSaver] putWrites called with non-array writes parameter:', typeof writes)
+      return // Gracefully handle empty/undefined writes (valid for initial checkpoint)
     }
 
     for (let idx = 0; idx < writes.length; idx++) {

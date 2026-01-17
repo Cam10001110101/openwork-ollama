@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { Loader2, AlertCircle, FileCode } from 'lucide-react'
-import { useCurrentThread } from '@/lib/thread-context'
+import { useAppStore } from '@/lib/store'
 import { getFileType, isBinaryFile } from '@/lib/file-types'
 import { CodeViewer } from './CodeViewer'
 import { ImageViewer } from './ImageViewer'
@@ -10,11 +10,10 @@ import { BinaryFileViewer } from './BinaryFileViewer'
 
 interface FileViewerProps {
   filePath: string
-  threadId: string
 }
 
-export function FileViewer({ filePath, threadId }: FileViewerProps) {
-  const { fileContents, setFileContents } = useCurrentThread(threadId)
+export function FileViewer({ filePath }: FileViewerProps) {
+  const { currentThreadId, fileContents, setFileContents } = useAppStore()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [binaryContent, setBinaryContent] = useState<string | null>(null)
@@ -38,6 +37,11 @@ export function FileViewer({ filePath, threadId }: FileViewerProps) {
   // Load file content (text or binary depending on file type)
   useEffect(() => {
     async function loadFile() {
+      if (!currentThreadId) {
+        setError('No thread selected')
+        return
+      }
+
       // Skip if already loaded
       if (content !== undefined || binaryContent !== null) {
         return
@@ -49,7 +53,7 @@ export function FileViewer({ filePath, threadId }: FileViewerProps) {
       try {
         if (isBinary) {
           // Read as binary file (base64)
-          const result = await window.api.workspace.readBinaryFile(threadId, filePath)
+          const result = await window.api.workspace.readBinaryFile(currentThreadId, filePath)
           if (result.success && result.content !== undefined) {
             setBinaryContent(result.content)
             setFileSize(result.size)
@@ -58,7 +62,7 @@ export function FileViewer({ filePath, threadId }: FileViewerProps) {
           }
         } else {
           // Read as text file
-          const result = await window.api.workspace.readFile(threadId, filePath)
+          const result = await window.api.workspace.readFile(currentThreadId, filePath)
           if (result.success && result.content !== undefined) {
             setFileContents(filePath, result.content)
             setFileSize(result.size)
@@ -74,7 +78,7 @@ export function FileViewer({ filePath, threadId }: FileViewerProps) {
     }
 
     loadFile()
-  }, [threadId, filePath, content, binaryContent, setFileContents, isBinary])
+  }, [currentThreadId, filePath, content, binaryContent, setFileContents, isBinary])
 
   if (isLoading) {
     return (

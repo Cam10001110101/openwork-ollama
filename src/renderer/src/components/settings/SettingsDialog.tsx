@@ -41,6 +41,12 @@ const PROVIDERS: ProviderConfig[] = [
     name: 'Google AI',
     envVar: 'GOOGLE_API_KEY',
     placeholder: 'AIza...'
+  },
+  {
+    id: 'ollama-cloud',
+    name: 'Ollama Cloud',
+    envVar: 'OLLAMA_API_KEY',
+    placeholder: 'ol-...'
   }
 ]
 

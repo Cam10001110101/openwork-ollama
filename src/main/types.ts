@@ -25,12 +25,14 @@ export interface Run {
 }
 
 // Provider configuration
-export type ProviderId = 'anthropic' | 'openai' | 'google' | 'ollama'
+export type ProviderId = 'anthropic' | 'openai' | 'google' | 'ollama-local' | 'ollama-cloud'
 
 export interface Provider {
   id: ProviderId
   name: string
   hasApiKey: boolean
+  localAvailable?: boolean
+  localEndpoint?: string
 }
 
 // Model configuration
@@ -41,6 +43,7 @@ export interface ModelConfig {
   model: string
   description?: string
   available: boolean
+  ollamaMode?: 'local' | 'cloud'
 }
 
 // Subagent types (from deepagentsjs)

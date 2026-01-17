@@ -62,7 +62,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
           return
         }
 
-        const agent = await createAgentRuntime({ threadId, workspacePath })
+        const agent = await createAgentRuntime({ workspacePath })
         const humanMessage = new HumanMessage(message)
 
         // Stream with both modes:
@@ -93,25 +93,18 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
           })
         }
 
-        // Send done event (only if not aborted)
-        if (!abortController.signal.aborted) {
-          window.webContents.send(channel, { type: 'done' })
-        }
+        // Send done event
+        window.webContents.send(channel, { type: 'done' })
       } catch (error) {
-        // Ignore abort-related errors (expected when stream is cancelled)
-        const isAbortError =
-          error instanceof Error &&
-          (error.name === 'AbortError' ||
-            error.message.includes('aborted') ||
-            error.message.includes('Controller is already closed'))
-
-        if (!isAbortError) {
-          console.error('[Agent] Error:', error)
-          window.webContents.send(channel, {
-            type: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error'
-          })
+        console.error('[Agent] Error:', error)
+        // Add stack trace for debugging
+        if (error instanceof Error && error.stack) {
+          console.error('[Agent] Stack trace:', error.stack)
         }
+        window.webContents.send(channel, {
+          type: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
       } finally {
         window.removeListener('closed', onWindowClosed)
         activeRuns.delete(threadId)
@@ -163,7 +156,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
       activeRuns.set(threadId, abortController)
 
       try {
-        const agent = await createAgentRuntime({ threadId, workspacePath })
+        const agent = await createAgentRuntime({ workspacePath })
         const config = {
           configurable: { thread_id: threadId },
           signal: abortController.signal,
@@ -188,23 +181,17 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
           })
         }
 
-        if (!abortController.signal.aborted) {
-          window.webContents.send(channel, { type: 'done' })
-        }
+        window.webContents.send(channel, { type: 'done' })
       } catch (error) {
-        const isAbortError =
-          error instanceof Error &&
-          (error.name === 'AbortError' ||
-            error.message.includes('aborted') ||
-            error.message.includes('Controller is already closed'))
-
-        if (!isAbortError) {
-          console.error('[Agent] Resume error:', error)
-          window.webContents.send(channel, {
-            type: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error'
-          })
+        console.error('[Agent] Resume error:', error)
+        // Add stack trace for debugging
+        if (error instanceof Error && error.stack) {
+          console.error('[Agent] Stack trace:', error.stack)
         }
+        window.webContents.send(channel, {
+          type: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
       } finally {
         activeRuns.delete(threadId)
       }
@@ -247,7 +234,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
       activeRuns.set(threadId, abortController)
 
       try {
-        const agent = await createAgentRuntime({ threadId, workspacePath })
+        const agent = await createAgentRuntime({ workspacePath })
         const config = {
           configurable: { thread_id: threadId },
           signal: abortController.signal,
@@ -270,9 +257,7 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
             })
           }
 
-          if (!abortController.signal.aborted) {
-            window.webContents.send(channel, { type: 'done' })
-          }
+          window.webContents.send(channel, { type: 'done' })
         } else if (decision.type === 'reject') {
           // For reject, we need to send a Command with reject decision
           // For now, just send done - the agent will see no resumption happened
@@ -280,19 +265,15 @@ export function registerAgentHandlers(ipcMain: IpcMain): void {
         }
         // edit case handled similarly to approve with modified args
       } catch (error) {
-        const isAbortError =
-          error instanceof Error &&
-          (error.name === 'AbortError' ||
-            error.message.includes('aborted') ||
-            error.message.includes('Controller is already closed'))
-
-        if (!isAbortError) {
-          console.error('[Agent] Interrupt error:', error)
-          window.webContents.send(channel, {
-            type: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error'
-          })
+        console.error('[Agent] Interrupt error:', error)
+        // Add stack trace for debugging
+        if (error instanceof Error && error.stack) {
+          console.error('[Agent] Stack trace:', error.stack)
         }
+        window.webContents.send(channel, {
+          type: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        })
       } finally {
         activeRuns.delete(threadId)
       }

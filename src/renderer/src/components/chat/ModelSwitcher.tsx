@@ -3,9 +3,9 @@ import { ChevronDown, Check, AlertCircle, Key } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/lib/store'
-import { useCurrentThread } from '@/lib/thread-context'
 import { cn } from '@/lib/utils'
 import { ApiKeyDialog } from './ApiKeyDialog'
+import { OllamaSettingsDialog } from './OllamaSettingsDialog'
 import type { Provider, ProviderId } from '@/types'
 
 // Provider icons as simple SVG components
@@ -33,11 +33,20 @@ function GoogleIcon({ className }: { className?: string }) {
   )
 }
 
+function OllamaIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+    </svg>
+  )
+}
+
 const PROVIDER_ICONS: Record<ProviderId, React.FC<{ className?: string }>> = {
   anthropic: AnthropicIcon,
   openai: OpenAIIcon,
   google: GoogleIcon,
-  ollama: () => null // No icon for ollama yet
+  'ollama-local': OllamaIcon,
+  'ollama-cloud': OllamaIcon
 }
 
 // Fallback providers in case the backend hasn't loaded them yet
@@ -47,18 +56,21 @@ const FALLBACK_PROVIDERS: Provider[] = [
   { id: 'google', name: 'Google', hasApiKey: false }
 ]
 
-interface ModelSwitcherProps {
-  threadId: string
-}
-
-export function ModelSwitcher({ threadId }: ModelSwitcherProps) {
+export function ModelSwitcher() {
   const [open, setOpen] = useState(false)
   const [selectedProviderId, setSelectedProviderId] = useState<ProviderId | null>(null)
   const [apiKeyDialogOpen, setApiKeyDialogOpen] = useState(false)
   const [apiKeyProvider, setApiKeyProvider] = useState<Provider | null>(null)
+  const [ollamaSettingsDialogOpen, setOllamaSettingsDialogOpen] = useState(false)
   
-  const { models, providers, loadModels, loadProviders } = useAppStore()
-  const { currentModel, setCurrentModel } = useCurrentThread(threadId)
+  const { 
+    models, 
+    providers,
+    currentModel, 
+    loadModels, 
+    loadProviders,
+    setCurrentModel 
+  } = useAppStore()
 
   // Load models and providers on mount
   useEffect(() => {
@@ -99,8 +111,12 @@ export function ModelSwitcher({ threadId }: ModelSwitcherProps) {
   }
 
   function handleConfigureApiKey(provider: Provider) {
-    setApiKeyProvider(provider)
-    setApiKeyDialogOpen(true)
+    if (provider.id === 'ollama-local') {
+      setOllamaSettingsDialogOpen(true)
+    } else {
+      setApiKeyProvider(provider)
+      setApiKeyDialogOpen(true)
+    }
   }
 
   function handleApiKeyDialogClose(isOpen: boolean) {
@@ -108,6 +124,14 @@ export function ModelSwitcher({ threadId }: ModelSwitcherProps) {
     if (!isOpen) {
       // Refresh providers after dialog closes
       loadProviders()
+      loadModels()
+    }
+  }
+
+  function handleOllamaSettingsDialogClose(isOpen: boolean) {
+    setOllamaSettingsDialogOpen(isOpen)
+    if (!isOpen) {
+      // Refresh models after dialog closes
       loadModels()
     }
   }
@@ -159,7 +183,7 @@ export function ModelSwitcher({ threadId }: ModelSwitcherProps) {
                     >
                       {Icon && <Icon className="size-3.5 shrink-0" />}
                       <span className="flex-1 truncate">{provider.name}</span>
-                      {!provider.hasApiKey && (
+                      {!provider.hasApiKey && provider.id !== 'ollama-local' && (
                         <AlertCircle className="size-3 text-status-warning shrink-0" />
                       )}
                     </button>
@@ -173,9 +197,9 @@ export function ModelSwitcher({ threadId }: ModelSwitcherProps) {
               <div className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider px-2 py-1.5">
                 Model
               </div>
-              
-              {selectedProvider && !selectedProvider.hasApiKey ? (
-                // No API key configured
+
+              {selectedProvider && selectedProvider.id !== 'ollama-local' && !selectedProvider.hasApiKey ? (
+                // No API key configured (skip this check for ollama-local)
                 <div className="flex flex-col items-center justify-center h-[180px] px-4 text-center">
                   <Key className="size-6 text-muted-foreground mb-2" />
                   <p className="text-xs text-muted-foreground mb-3">
@@ -209,7 +233,7 @@ export function ModelSwitcher({ threadId }: ModelSwitcherProps) {
                         )}
                       </button>
                     ))}
-                    
+
                     {filteredModels.length === 0 && (
                       <p className="text-xs text-muted-foreground px-2 py-4">
                         No models available
@@ -217,14 +241,16 @@ export function ModelSwitcher({ threadId }: ModelSwitcherProps) {
                     )}
                   </div>
                   
-                  {/* Configure API key link for providers that have a key */}
-                  {selectedProvider?.hasApiKey && (
+                  {/* Configure settings/API key link */}
+                  {selectedProvider && (
                     <button
                       onClick={() => handleConfigureApiKey(selectedProvider)}
                       className="w-full flex items-center gap-2 px-2 py-1.5 rounded-sm text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors mt-2 border-t border-border pt-2"
                     >
                       <Key className="size-3.5" />
-                      <span>Edit API Key</span>
+                      <span>
+                        {selectedProvider.id === 'ollama-local' ? 'Ollama Settings' : 'Edit API Key'}
+                      </span>
                     </button>
                   )}
                 </div>
@@ -238,6 +264,11 @@ export function ModelSwitcher({ threadId }: ModelSwitcherProps) {
         open={apiKeyDialogOpen}
         onOpenChange={handleApiKeyDialogClose}
         provider={apiKeyProvider}
+      />
+
+      <OllamaSettingsDialog
+        open={ollamaSettingsDialogOpen}
+        onOpenChange={handleOllamaSettingsDialogClose}
       />
     </>
   )

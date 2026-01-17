@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { createDeepAgent } from 'deepagents'
-import { getDefaultModel } from '../ipc/models'
-import { getApiKey, getThreadCheckpointPath } from '../storage'
+import { getDefaultModel, isOllamaCloudModel, isOllamaLocalModel } from '../ipc/models'
+import { getApiKey, getCheckpointDbPath, getOllamaLocalEndpoint } from '../storage'
 import { ChatAnthropic } from '@langchain/anthropic'
 import { ChatOpenAI } from '@langchain/openai'
 import { ChatGoogleGenerativeAI } from '@langchain/google-genai'
+import { ChatOllama } from '@langchain/ollama'
 import { SqlJsSaver } from '../checkpointer/sqljs-saver'
 import { LocalSandbox } from './local-sandbox'
 
@@ -36,32 +37,51 @@ function getSystemPrompt(workspacePath: string): string {
   return workingDirSection + BASE_SYSTEM_PROMPT
 }
 
-// Per-thread checkpointer cache
-const checkpointers = new Map<string, SqlJsSaver>()
+// Singleton checkpointer instance
+let checkpointer: SqlJsSaver | null = null
 
-export async function getCheckpointer(threadId: string): Promise<SqlJsSaver> {
-  let checkpointer = checkpointers.get(threadId)
+export async function getCheckpointer(): Promise<SqlJsSaver> {
   if (!checkpointer) {
-    const dbPath = getThreadCheckpointPath(threadId)
-    checkpointer = new SqlJsSaver(dbPath)
+    checkpointer = new SqlJsSaver(getCheckpointDbPath())
     await checkpointer.initialize()
-    checkpointers.set(threadId, checkpointer)
   }
   return checkpointer
 }
 
-export async function closeCheckpointer(threadId: string): Promise<void> {
-  const checkpointer = checkpointers.get(threadId)
-  if (checkpointer) {
-    await checkpointer.close()
-    checkpointers.delete(threadId)
-  }
-}
-
 // Get the appropriate model instance based on configuration
-function getModelInstance(modelId?: string): ChatAnthropic | ChatOpenAI | ChatGoogleGenerativeAI | string {
+function getModelInstance(
+  modelId?: string
+): ChatAnthropic | ChatOpenAI | ChatGoogleGenerativeAI | ChatOllama | string {
   const model = modelId || getDefaultModel()
   console.log('[Runtime] Using model:', model)
+
+  // Check if this is a local Ollama model
+  if (isOllamaLocalModel(model)) {
+    const endpoint = getOllamaLocalEndpoint()
+    console.log('[Runtime] Using local Ollama at:', endpoint)
+    return new ChatOllama({
+      model,
+      baseUrl: endpoint
+    })
+  }
+
+  // Check if this is an Ollama Cloud model
+  // Ollama Cloud hosts many models including Gemini, DeepSeek, Qwen, etc.
+  // Use ChatOpenAI since Ollama Cloud supports OpenAI-compatible API
+  if (isOllamaCloudModel(model)) {
+    const apiKey = getApiKey('ollama-cloud')
+    console.log('[Runtime] Using Ollama Cloud, API key present:', !!apiKey)
+    if (!apiKey) {
+      throw new Error('Ollama Cloud API key not configured')
+    }
+    return new ChatOpenAI({
+      model,
+      configuration: {
+        baseURL: 'https://ollama.com/v1',
+        apiKey: apiKey
+      }
+    })
+  }
 
   // Determine provider from model ID
   if (model.startsWith('claude')) {
@@ -106,8 +126,6 @@ function getModelInstance(modelId?: string): ChatAnthropic | ChatOpenAI | ChatGo
 }
 
 export interface CreateAgentRuntimeOptions {
-  /** Thread ID - REQUIRED for per-thread checkpointing */
-  threadId: string
   /** Model ID to use (defaults to configured default model) */
   modelId?: string
   /** Workspace path - REQUIRED for agent to operate on files */
@@ -119,11 +137,7 @@ export type AgentRuntime = ReturnType<typeof createDeepAgent>
 
 // eslint-disable-next-line @typescript-eslint/explicit-function-return-type
 export async function createAgentRuntime(options: CreateAgentRuntimeOptions) {
-  const { threadId, modelId, workspacePath } = options
-
-  if (!threadId) {
-    throw new Error('Thread ID is required for checkpointing.')
-  }
+  const { modelId, workspacePath } = options
 
   if (!workspacePath) {
     throw new Error(
@@ -132,14 +146,13 @@ export async function createAgentRuntime(options: CreateAgentRuntimeOptions) {
   }
 
   console.log('[Runtime] Creating agent runtime...')
-  console.log('[Runtime] Thread ID:', threadId)
   console.log('[Runtime] Workspace path:', workspacePath)
 
   const model = getModelInstance(modelId)
   console.log('[Runtime] Model instance created:', typeof model)
 
-  const checkpointer = await getCheckpointer(threadId)
-  console.log('[Runtime] Checkpointer ready for thread:', threadId)
+  const checkpointer = await getCheckpointer()
+  console.log('[Runtime] Checkpointer ready')
 
   const backend = new LocalSandbox({
     rootDir: workspacePath,
@@ -179,9 +192,10 @@ The workspace root is: ${workspacePath}`
 
 export type DeepAgent = ReturnType<typeof createDeepAgent>
 
-// Clean up all checkpointer resources
+// Clean up resources
 export async function closeRuntime(): Promise<void> {
-  const closePromises = Array.from(checkpointers.values()).map((cp) => cp.close())
-  await Promise.all(closePromises)
-  checkpointers.clear()
+  if (checkpointer) {
+    await checkpointer.close()
+    checkpointer = null
+  }
 }

@@ -71,6 +71,12 @@ function TodosDisplay({ todos }: { todos: Todo[] }) {
 
   const defaultConfig = { icon: Circle, color: 'text-muted-foreground' }
 
+  // Ensure todos is an array
+  if (!Array.isArray(todos)) {
+    console.warn('[TodosDisplay] Expected array but got:', typeof todos, todos)
+    return null
+  }
+
   return (
     <div className="space-y-1">
       {todos.map((todo, i) => {
@@ -309,7 +315,7 @@ export function ToolCallRenderer({ toolCall, result, isError, needsApproval, onA
     switch (toolCall.name) {
       case 'write_todos': {
         const todos = args.todos as Todo[] | undefined
-        if (todos && todos.length > 0) {
+        if (todos && Array.isArray(todos) && todos.length > 0) {
           return <TodosDisplay todos={todos} />
         }
         return null

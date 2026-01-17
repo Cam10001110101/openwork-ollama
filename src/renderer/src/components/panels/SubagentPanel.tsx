@@ -13,7 +13,6 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/lib/store'
-import { useThreadState } from '@/lib/thread-context'
 import type { Subagent } from '@/types'
 
 // Icon component for subagent type (avoid creating components during render)
@@ -53,9 +52,7 @@ function getSubagentTypeBadge(subagentType?: string): string {
 }
 
 export function SubagentPanel(): React.JSX.Element {
-  const { currentThreadId } = useAppStore()
-  const threadState = useThreadState(currentThreadId)
-  const subagents = threadState?.subagents ?? []
+  const { subagents } = useAppStore()
 
   // Count by status
   const runningCount = subagents.filter((s) => s.status === 'running').length

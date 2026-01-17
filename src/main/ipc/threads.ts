@@ -7,8 +7,7 @@ import {
   updateThread as dbUpdateThread,
   deleteThread as dbDeleteThread
 } from '../db'
-import { getCheckpointer, closeCheckpointer } from '../agent/runtime'
-import { deleteThreadCheckpoint } from '../storage'
+import { getCheckpointer } from '../agent/runtime'
 import { generateTitle } from '../services/title-generator'
 import type { Thread } from '../types'
 
@@ -95,27 +94,20 @@ export function registerThreadHandlers(ipcMain: IpcMain) {
     dbDeleteThread(threadId)
     console.log('[Threads] Deleted from metadata store')
 
-    // Close any open checkpointer for this thread
+    // Also delete from LangGraph checkpointer
     try {
-      await closeCheckpointer(threadId)
-      console.log('[Threads] Closed checkpointer')
+      const checkpointer = await getCheckpointer()
+      await checkpointer.deleteThread(threadId)
+      console.log('[Threads] Deleted from checkpointer')
     } catch (e) {
-      console.warn('[Threads] Failed to close checkpointer:', e)
-    }
-
-    // Delete the thread's checkpoint file
-    try {
-      deleteThreadCheckpoint(threadId)
-      console.log('[Threads] Deleted checkpoint file')
-    } catch (e) {
-      console.warn('[Threads] Failed to delete checkpoint file:', e)
+      console.warn('[Threads] Failed to delete thread from checkpointer:', e)
     }
   })
 
   // Get thread history (checkpoints)
   ipcMain.handle('threads:history', async (_event, threadId: string) => {
     try {
-      const checkpointer = await getCheckpointer(threadId)
+      const checkpointer = await getCheckpointer()
 
       const history: unknown[] = []
       const config = { configurable: { thread_id: threadId } }

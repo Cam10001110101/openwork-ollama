@@ -1,4 +1,4 @@
-import { useCurrentThread } from '@/lib/thread-context'
+import { useAppStore } from '@/lib/store'
 import { TabBar } from './TabBar'
 import { FileViewer } from './FileViewer'
 import { ChatContainer } from '@/components/chat/ChatContainer'
@@ -9,7 +9,7 @@ interface TabbedPanelProps {
 }
 
 export function TabbedPanel({ threadId, showTabBar = true }: TabbedPanelProps) {
-  const { activeTab, openFiles } = useCurrentThread(threadId)
+  const { activeTab, openFiles } = useAppStore()
 
   // Determine what to render based on active tab
   const isAgentTab = activeTab === 'agent'
@@ -29,7 +29,7 @@ export function TabbedPanel({ threadId, showTabBar = true }: TabbedPanelProps) {
           <ChatContainer threadId={threadId} />
         ) : activeFile ? (
           // Use key to force remount when file changes, ensuring fresh state
-          <FileViewer key={activeFile.path} filePath={activeFile.path} threadId={threadId} />
+          <FileViewer key={activeFile.path} filePath={activeFile.path} />
         ) : (
           // Fallback - shouldn't happen but just in case
           <div className="flex flex-1 items-center justify-center text-muted-foreground">

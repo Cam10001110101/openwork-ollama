@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@/components/ui/popover'
-import { useCurrentThread } from '@/lib/thread-context'
+import { useAppStore } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
 export async function selectWorkspaceFolder(
@@ -35,25 +35,21 @@ export async function selectWorkspaceFolder(
   }
 }
 
-interface WorkspacePickerProps {
-  threadId: string
-}
-
-export function WorkspacePicker({ threadId }: WorkspacePickerProps): React.JSX.Element {
-  const { workspacePath, setWorkspacePath, setWorkspaceFiles } = useCurrentThread(threadId)
+export function WorkspacePicker(): React.JSX.Element {
+  const { workspacePath, currentThreadId, setWorkspacePath, setWorkspaceFiles } = useAppStore()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
 
   // Load workspace path and files for current thread
   useEffect(() => {
     async function loadWorkspace(): Promise<void> {
-      if (threadId) {
-        const path = await window.api.workspace.get(threadId)
+      if (currentThreadId) {
+        const path = await window.api.workspace.get(currentThreadId)
         setWorkspacePath(path)
 
         // If a folder is linked, load files from disk
         if (path) {
-          const result = await window.api.workspace.loadFromDisk(threadId)
+          const result = await window.api.workspace.loadFromDisk(currentThreadId)
           if (result.success && result.files) {
             setWorkspaceFiles(result.files)
           }
@@ -61,11 +57,10 @@ export function WorkspacePicker({ threadId }: WorkspacePickerProps): React.JSX.E
       }
     }
     loadWorkspace()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadId])
+  }, [currentThreadId, setWorkspacePath, setWorkspaceFiles])
 
   async function handleSelectFolder(): Promise<void> {
-    await selectWorkspaceFolder(threadId, setWorkspacePath, setWorkspaceFiles, setLoading, setOpen)
+    await selectWorkspaceFolder(currentThreadId, setWorkspacePath, setWorkspaceFiles, setLoading, setOpen)
   }
 
   const folderName = workspacePath?.split('/').pop()
@@ -80,7 +75,7 @@ export function WorkspacePicker({ threadId }: WorkspacePickerProps): React.JSX.E
             'h-7 px-2 text-xs gap-1.5',
             workspacePath ? 'text-foreground' : 'text-amber-500'
           )}
-          disabled={!threadId}
+          disabled={!currentThreadId}
         >
           <Folder className="size-3.5" />
           <span className="max-w-[120px] truncate">

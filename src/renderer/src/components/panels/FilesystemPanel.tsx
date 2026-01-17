@@ -4,30 +4,23 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/lib/store'
-import { useThreadState } from '@/lib/thread-context'
 import type { FileInfo } from '@/types'
 
 export function FilesystemPanel() {
-  const { currentThreadId } = useAppStore()
-  const threadState = useThreadState(currentThreadId)
-  const workspaceFiles = threadState?.workspaceFiles ?? []
-  const workspacePath = threadState?.workspacePath ?? null
-  const setWorkspacePath = threadState?.setWorkspacePath
-  const setWorkspaceFiles = threadState?.setWorkspaceFiles
+  const { workspaceFiles, workspacePath, currentThreadId, setWorkspacePath, setWorkspaceFiles } = useAppStore()
   const [expandedDirs, setExpandedDirs] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   
   // Load workspace path for current thread
   useEffect(() => {
     async function loadWorkspacePath() {
-      if (currentThreadId && setWorkspacePath) {
+      if (currentThreadId) {
         const path = await window.api.workspace.get(currentThreadId)
         setWorkspacePath(path)
       }
     }
     loadWorkspacePath()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentThreadId])
+  }, [currentThreadId, setWorkspacePath])
   
   // Auto-expand root when workspace path changes
   useEffect(() => {
@@ -38,8 +31,6 @@ export function FilesystemPanel() {
   
   // Listen for file changes from the main process
   useEffect(() => {
-    if (!setWorkspaceFiles) return
-
     const cleanup = window.api.workspace.onFilesChanged(async (data) => {
       // Only refresh if this is the current thread
       if (data.threadId === currentThreadId) {
@@ -56,12 +47,11 @@ export function FilesystemPanel() {
     })
     
     return cleanup
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentThreadId])
+  }, [currentThreadId, setWorkspaceFiles])
   
   // Handle selecting a workspace folder
   async function handleSelectFolder() {
-    if (!currentThreadId || !setWorkspacePath || !setWorkspaceFiles) return
+    if (!currentThreadId) return
     
     setLoading(true)
     try {
@@ -83,7 +73,7 @@ export function FilesystemPanel() {
   
   // Handle refreshing files from disk
   async function handleRefresh() {
-    if (!currentThreadId || !setWorkspaceFiles) return
+    if (!currentThreadId) return
     
     setLoading(true)
     try {

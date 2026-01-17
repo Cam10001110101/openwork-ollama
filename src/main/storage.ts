@@ -1,15 +1,23 @@
 import { homedir } from 'os'
 import { join } from 'path'
-import { existsSync, mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
+import Store from 'electron-store'
 
 const OPENWORK_DIR = join(homedir(), '.openwork')
 const ENV_FILE = join(OPENWORK_DIR, '.env')
+
+// Electron store for non-sensitive configuration
+const store = new Store({
+  cwd: OPENWORK_DIR
+})
 
 // Environment variable names for each provider
 const ENV_VAR_NAMES: Record<string, string> = {
   anthropic: 'ANTHROPIC_API_KEY',
   openai: 'OPENAI_API_KEY',
-  google: 'GOOGLE_API_KEY'
+  google: 'GOOGLE_API_KEY',
+  'ollama-cloud': 'OLLAMA_API_KEY'
+  // Note: ollama-local does not require an API key
 }
 
 export function getOpenworkDir(): string {
@@ -25,25 +33,6 @@ export function getDbPath(): string {
 
 export function getCheckpointDbPath(): string {
   return join(getOpenworkDir(), 'langgraph.sqlite')
-}
-
-export function getThreadCheckpointDir(): string {
-  const dir = join(getOpenworkDir(), 'threads')
-  if (!existsSync(dir)) {
-    mkdirSync(dir, { recursive: true })
-  }
-  return dir
-}
-
-export function getThreadCheckpointPath(threadId: string): string {
-  return join(getThreadCheckpointDir(), `${threadId}.sqlite`)
-}
-
-export function deleteThreadCheckpoint(threadId: string): void {
-  const path = getThreadCheckpointPath(threadId)
-  if (existsSync(path)) {
-    unlinkSync(path)
-  }
 }
 
 export function getEnvFilePath(): string {
@@ -119,4 +108,32 @@ export function deleteApiKey(provider: string): void {
 
 export function hasApiKey(provider: string): boolean {
   return !!getApiKey(provider)
+}
+
+// Ollama local endpoint management
+const DEFAULT_OLLAMA_ENDPOINT = 'http://localhost:11434'
+
+export function getOllamaLocalEndpoint(): string {
+  return (store.get('ollamaLocalEndpoint') as string) || DEFAULT_OLLAMA_ENDPOINT
+}
+
+export function setOllamaLocalEndpoint(endpoint: string): void {
+  store.set('ollamaLocalEndpoint', endpoint)
+}
+
+export async function testOllamaLocalConnection(endpoint?: string): Promise<boolean> {
+  const url = endpoint || getOllamaLocalEndpoint()
+  try {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 3000) // 3 second timeout
+
+    const response = await fetch(`${url}/api/version`, {
+      signal: controller.signal
+    })
+
+    clearTimeout(timeoutId)
+    return response.ok
+  } catch (error) {
+    return false
+  }
 }

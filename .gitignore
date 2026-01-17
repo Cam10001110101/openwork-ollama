@@ -1,7 +1,158 @@
-node_modules
-dist
-out
-.DS_Store
+# Environment and Secrets
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets/
+.secrets
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+.hypothesis/
+.venv/
+venv/
+ENV/
+env/
+.uv/
+
+# Node.js/TypeScript
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+.npm
 .eslintcache
-*.log*
-release
+.node_repl_history
+*.tsbuildinfo
+.yarn/
+.pnp.*
+
+# Build outputs
+dist/
+build/
+out/
+*.js.map
+*.d.ts.map
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+.wrangler/
+worker-bundle.js
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+vendor/
+coverage.out
+coverage.txt
+
+# Testing
+coverage/
+.nyc_output/
+junit.xml
+test-results/
+*.lcov
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+
+# Claude Code
+.claude/
+
+# OS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# Docker
+docker-compose.override.yml
+
+# Cloudflare
+.dev.vars
+.mf/
+wrangler.toml.local
+
+# Generated files
+generated/
+auto-generated/
+*.generated.*
+
+# Jetpack
+.cass/
+.jetpack/mail/
+.jetpack/agents.json
+.jetpack/plans/
+
+# Note: .jetpack/config.json can be tracked for team consistency
+# Add ".jetpack/config.json" to .gitignore if you prefer project-specific settings

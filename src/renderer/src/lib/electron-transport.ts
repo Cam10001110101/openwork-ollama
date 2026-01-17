@@ -4,25 +4,6 @@ import type { StreamPayload, StreamEvent, IPCEvent, IPCStreamEvent } from '../..
 import type { Subagent } from '../types'
 
 /**
- * Usage metadata from LangChain model responses.
- * Contains token counts for tracking context window usage.
- */
-interface UsageMetadata {
-  input_tokens?: number
-  output_tokens?: number
-  total_tokens?: number
-  input_token_details?: {
-    cache_read?: number
-    cache_creation?: number
-    audio?: number
-  }
-  output_token_details?: {
-    audio?: number
-    reasoning?: number
-  }
-}
-
-/**
  * Serialized LangGraph message chunk.
  * LangChain uses a special serialization format:
  * { lc: 1, type: "constructor", id: ["langchain_core", "messages", "AIMessageChunk"], kwargs: { ... } }
@@ -41,11 +22,6 @@ interface SerializedMessageChunk {
     tool_call_chunks?: ToolCallChunk[]
     tool_call_id?: string
     name?: string
-    usage_metadata?: UsageMetadata
-    response_metadata?: {
-      usage?: UsageMetadata
-      [key: string]: unknown
-    }
   }
 }
 
@@ -106,7 +82,7 @@ export class ElectronIPCTransport implements UseStreamTransport {
 
     // Check if this is a resume command (no message needed)
     const hasResumeCommand = payload.command?.resume !== undefined
-
+    
     // Extract the message content from input
     const input = payload.input as
       | { messages?: Array<{ content: string; type: string }> }
@@ -335,11 +311,7 @@ export class ElectronIPCTransport implements UseStreamTransport {
                       name: firstAction.name,
                       args: firstAction.args || {}
                     },
-                    allowed_decisions: reviewConfig?.allowedDecisions || [
-                      'approve',
-                      'reject',
-                      'edit'
-                    ]
+                    allowed_decisions: reviewConfig?.allowedDecisions || ['approve', 'reject', 'edit']
                   }
                 }
               })
@@ -417,9 +389,9 @@ export class ElectronIPCTransport implements UseStreamTransport {
           events.push({
             event: 'messages',
             data: [
-              {
-                id: msgId,
-                type: 'ai',
+              { 
+                id: msgId, 
+                type: 'ai', 
                 content: content || '',
                 // Include tool_calls if present
                 ...(kwargs.tool_calls?.length && { tool_calls: kwargs.tool_calls })
@@ -448,7 +420,7 @@ export class ElectronIPCTransport implements UseStreamTransport {
         if (kwargs.tool_calls?.length) {
           const subagentEvents = this.processCompletedToolCalls(kwargs.tool_calls)
           events.push(...subagentEvents)
-
+          
           // Track tool calls for HITL matching
           for (const tc of kwargs.tool_calls) {
             if (tc.id && tc.name) {
@@ -458,49 +430,20 @@ export class ElectronIPCTransport implements UseStreamTransport {
             }
           }
         }
-
-        // Extract usage_metadata for context window tracking
-        // Usage metadata is present on completed AI messages (not streaming chunks)
-        const usageMetadata = kwargs.usage_metadata || kwargs.response_metadata?.usage
-        if (usageMetadata) {
-          console.log('[ElectronTransport] Found usage_metadata:', {
-            input_tokens: usageMetadata.input_tokens,
-            output_tokens: usageMetadata.output_tokens,
-            total_tokens: usageMetadata.total_tokens,
-            has_cache_details: !!usageMetadata.input_token_details
-          })
-
-          // Only emit if we have actual token counts (not on every chunk)
-          if (usageMetadata.input_tokens !== undefined && usageMetadata.input_tokens > 0) {
-            events.push({
-              event: 'custom',
-              data: {
-                type: 'token_usage',
-                usage: {
-                  inputTokens: usageMetadata.input_tokens,
-                  outputTokens: usageMetadata.output_tokens,
-                  totalTokens: usageMetadata.total_tokens,
-                  cacheReadTokens: usageMetadata.input_token_details?.cache_read,
-                  cacheCreationTokens: usageMetadata.input_token_details?.cache_creation
-                }
-              }
-            })
-          }
-        }
       }
 
       // Handle ToolMessage - emit as message event and handle subagent completion
       if (isToolMessage && kwargs.tool_call_id) {
         const content = this.extractContent(kwargs.content)
         const msgId = kwargs.id || crypto.randomUUID()
-
+        
         // Emit tool message to the stream
         events.push({
           event: 'messages',
           data: [
-            {
-              id: msgId,
-              type: 'tool',
+            { 
+              id: msgId, 
+              type: 'tool', 
               content,
               tool_call_id: kwargs.tool_call_id,
               name: kwargs.name
@@ -508,7 +451,7 @@ export class ElectronIPCTransport implements UseStreamTransport {
             { langgraph_node: metadata?.langgraph_node || 'tools' }
           ]
         })
-
+        
         // Handle subagent task completion
         if (kwargs.name === 'task') {
           const completionEvents = this.processToolMessage(kwargs.tool_call_id)
@@ -516,6 +459,7 @@ export class ElectronIPCTransport implements UseStreamTransport {
         }
       }
     } else if (mode === 'values') {
+
       // Values mode returns full state with serialized LangChain messages
       const state = data as {
         messages?: SerializedMessageChunk[]
@@ -613,7 +557,7 @@ export class ElectronIPCTransport implements UseStreamTransport {
       if (state.workspacePath) {
         valuesData.workspacePath = state.workspacePath
       }
-
+      
       // Only emit if we have something to update
       if (Object.keys(valuesData).length > 0) {
         events.push({

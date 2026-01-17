@@ -146,6 +146,18 @@ const api = {
     },
     deleteApiKey: (provider: string): Promise<void> => {
       return ipcRenderer.invoke('models:deleteApiKey', provider)
+    },
+    testOllamaLocal: (endpoint?: string): Promise<boolean> => {
+      return ipcRenderer.invoke('models:testOllamaLocal', endpoint)
+    },
+    getOllamaLocalEndpoint: (): Promise<string> => {
+      return ipcRenderer.invoke('models:getOllamaLocalEndpoint')
+    },
+    setOllamaLocalEndpoint: (endpoint: string): Promise<void> => {
+      return ipcRenderer.invoke('models:setOllamaLocalEndpoint', endpoint)
+    },
+    refreshOllamaLocal: (): Promise<number> => {
+      return ipcRenderer.invoke('models:refreshOllamaLocal')
     }
   },
   workspace: {
